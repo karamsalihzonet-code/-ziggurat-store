@@ -29,6 +29,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ============================================
 // DATABASE CONNECTION
@@ -148,7 +149,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}.upload`;
     cb(null, uniqueName);
   }
 });
@@ -173,7 +174,6 @@ const sanitizeImage = async (filePath) => {
   try {
     const outputPath = filePath.replace(/\.[^.]+$/, '.webp');
     await sharp(filePath)
-      .withMetadata(false) // Remove all metadata including EXIF
       .toFormat('webp')
       .toFile(outputPath);
     
@@ -193,6 +193,9 @@ const sanitizeImage = async (filePath) => {
 // ============================================
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set in production');
+}
 const JWT_EXPIRY = '7d';
 
 const generateToken = (userId, userType) => {
@@ -265,11 +268,19 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     const user = result.rows[0];
+    let store = null;
+    if (user.user_type === 'seller') {
+      const storeResult = await pool.query(
+        'INSERT INTO stores (user_id, store_name, store_description) VALUES ($1, $2, $3) RETURNING *',
+        [user.id, `${user.username}'s Store`, '']
+      );
+      store = storeResult.rows[0];
+    }
     const token = generateToken(user.id, user.user_type);
 
     res.status(201).json({
       message: 'User registered successfully',
-      user: { id: user.id, username: user.username, email: user.email },
+      user: { id: user.id, username: user.username, email: user.email, userType: user.user_type, store },
       token
     });
   } catch (error) {
@@ -308,10 +319,15 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = generateToken(user.id, user.user_type);
+    let store = null;
+    if (user.user_type === 'seller') {
+      const storeResult = await pool.query('SELECT * FROM stores WHERE user_id = $1 ORDER BY id LIMIT 1', [user.id]);
+      store = storeResult.rows[0] || null;
+    }
 
     res.json({
       message: 'Login successful',
-      user: { id: user.id, username: user.username, email: user.email, userType: user.user_type },
+      user: { id: user.id, username: user.username, email: user.email, userType: user.user_type, store },
       token
     });
   } catch (error) {
@@ -324,6 +340,18 @@ app.post('/api/auth/login', async (req, res) => {
 // SELLER ROUTES
 // ============================================
 
+// Get current seller store
+app.get('/api/seller/store', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.userType !== 'seller') return res.status(403).json({ error: 'Only sellers can access stores' });
+    const result = await pool.query('SELECT * FROM stores WHERE user_id = $1 ORDER BY id LIMIT 1', [req.user.userId]);
+    res.json({ store: result.rows[0] || null });
+  } catch (error) {
+    console.error('Store fetch error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch store' });
+  }
+});
+
 // Create Store
 app.post('/api/seller/store', authMiddleware, async (req, res) => {
   try {
@@ -335,6 +363,11 @@ app.post('/api/seller/store', authMiddleware, async (req, res) => {
 
     if (!storeName) {
       return res.status(400).json({ error: 'Store name required' });
+    }
+
+    const existingStore = await pool.query('SELECT * FROM stores WHERE user_id = $1 ORDER BY id LIMIT 1', [req.user.userId]);
+    if (existingStore.rows.length) {
+      return res.json({ message: 'Store already exists', store: existingStore.rows[0] });
     }
 
     const result = await pool.query(
@@ -361,8 +394,11 @@ app.post('/api/seller/products', authMiddleware, upload.single('image'), async (
 
     const { storeId, title, description, price, category, deliveryType } = req.body;
 
-    if (!storeId || !title || !description || !price || !deliveryType) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!storeId || !title?.trim() || !description?.trim() || price === undefined || Number(price) <= 0 || !deliveryType) {
+      return res.status(400).json({ error: 'Missing or invalid required fields' });
+    }
+    if (!['instant_download', 'manual_delivery'].includes(deliveryType)) {
+      return res.status(400).json({ error: 'Invalid delivery type' });
     }
 
     // Verify store ownership
@@ -454,7 +490,11 @@ app.get('/api/products', async (req, res) => {
     params.push(limit, offset);
 
     const result = await pool.query(query, params);
-    const countResult = await pool.query('SELECT COUNT(*) FROM products WHERE is_active = TRUE');
+    let countQuery = 'SELECT COUNT(*) FROM products p WHERE p.is_active = TRUE';
+    const countParams = [];
+    if (category) { countQuery += ` AND p.category = $${countParams.length + 1}`; countParams.push(category); }
+    if (search) { countQuery += ` AND (p.title ILIKE $${countParams.length + 1} OR p.description ILIKE $${countParams.length + 1})`; countParams.push(`%${search}%`); }
+    const countResult = await pool.query(countQuery, countParams);
 
     res.json({
       products: result.rows,
@@ -468,9 +508,61 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+// Get a single product (public)
+app.get('/api/products/:productId', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.*, s.store_name, s.store_rating
+      FROM products p
+      JOIN stores s ON s.id = p.store_id
+      WHERE p.id = $1 AND p.is_active = TRUE`, [req.params.productId]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Product not found' });
+    res.json({ product: result.rows[0] });
+  } catch (error) {
+    console.error('Product detail error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch product' });
+  }
+});
+
 // ============================================
 // ORDER & ESCROW ROUTES
 // ============================================
+
+// Get buyer orders
+app.get('/api/orders/buyer', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.userType !== 'buyer') return res.status(403).json({ error: 'Only buyers can view buyer orders' });
+    const result = await pool.query(`
+      SELECT o.*, p.title AS product_title, p.image_url, s.store_name
+      FROM orders o
+      JOIN products p ON p.id = o.product_id
+      JOIN stores s ON s.id = p.store_id
+      WHERE o.buyer_id = $1
+      ORDER BY o.created_at DESC`, [req.user.userId]);
+    res.json({ orders: result.rows });
+  } catch (error) {
+    console.error('Buyer orders error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch buyer orders' });
+  }
+});
+
+// Get seller orders
+app.get('/api/orders/seller', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.userType !== 'seller') return res.status(403).json({ error: 'Only sellers can view seller orders' });
+    const result = await pool.query(`
+      SELECT o.*, p.title AS product_title, p.delivery_type, u.username AS buyer_username
+      FROM orders o
+      JOIN products p ON p.id = o.product_id
+      JOIN users u ON u.id = o.buyer_id
+      WHERE o.seller_id = $1
+      ORDER BY o.created_at DESC`, [req.user.userId]);
+    res.json({ orders: result.rows });
+  } catch (error) {
+    console.error('Seller orders error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch seller orders' });
+  }
+});
 
 // Create Order (Initiate Purchase)
 app.post('/api/orders', authMiddleware, async (req, res) => {
@@ -741,8 +833,9 @@ app.use((err, req, res, next) => {
   // Don't leak error details to client in production
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  res.status(500).json({
-    error: 'Internal server error',
+  const status = error.name === 'MulterError' ? 400 : 500;
+  res.status(status).json({
+    error: error.message || 'Internal server error',
     ...(isDevelopment && { details: err.message })
   });
 });

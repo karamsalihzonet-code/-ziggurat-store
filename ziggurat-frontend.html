@@ -888,8 +888,9 @@
 
     <script>
         // ====== API CONFIG ====== 
-        const API_BASE = 'http://localhost:5000/api';
-        let currentUser = null;
+        const API_BASE = `${window.location.protocol}//${window.location.hostname || 'localhost'}:5000/api`;
+        const API_ORIGIN = API_BASE.replace(/\/api$/, '');
+        let currentUser = JSON.parse(localStorage.getItem('auth_user') || 'null');
         let authToken = localStorage.getItem('auth_token');
 
         // Update auth toggle based on login state
@@ -911,6 +912,16 @@
             if (protectedPages.includes(pageName) && !authToken) {
                 showAlert('Please login first', 'error');
                 showPage('login');
+                return;
+            }
+            if (pageName.startsWith('seller') || pageName === 'add-product') {
+                if (!currentUser || currentUser.userType !== 'seller') {
+                    showAlert('Seller account required', 'error');
+                    return;
+                }
+            }
+            if (pageName === 'buyer-dashboard' && (!currentUser || currentUser.userType !== 'buyer')) {
+                showAlert('Buyer account required', 'error');
                 return;
             }
 
@@ -946,13 +957,25 @@
 
         // ====== PRODUCTS ====== 
         async function loadProducts() {
+            const grid = document.getElementById('products-grid');
             try {
-                const response = await fetch(`${API_BASE}/products`);
+                const params = new URLSearchParams();
+                const query = document.getElementById('search-input')?.value.trim();
+                const category = document.getElementById('category-filter')?.value;
+                if (query) params.set('search', query);
+                if (category) params.set('category', category);
+                const response = await fetch(`${API_BASE}/products?${params.toString()}`);
                 const data = await response.json();
-                renderProducts(data.products);
+                if (!response.ok) throw new Error(data.error || 'Failed to load products');
+                renderProducts(data.products || []);
             } catch (error) {
                 console.error('Error loading products:', error);
+                grid.innerHTML = '<p style="text-align:center;padding:3rem;">Unable to load products. Make sure the backend is running.</p>';
             }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;',"\"":'&quot;'}[ch]));
         }
 
         function renderProducts(products) {
@@ -966,12 +989,12 @@
             grid.innerHTML = products.map(product => `
                 <div class="product-card" onclick="showProductDetail(${product.id})">
                     <div class="product-image">
-                        ${product.image_url ? `<img src="${product.image_url}" alt="${product.title}">` : '🎁'}
+                        ${product.image_url ? `<img src="${product.image_url.startsWith('http') ? product.image_url : API_ORIGIN + product.image_url}" alt="${escapeHtml(product.title)}">` : '🎁'}
                     </div>
                     <div class="product-info">
-                        <div class="product-title">${product.title}</div>
-                        <div class="product-store">by ${product.store_name}</div>
-                        <div class="product-description">${product.description.substring(0, 100)}...</div>
+                        <div class="product-title">${escapeHtml(product.title)}</div>
+                        <div class="product-store">by ${escapeHtml(product.store_name || 'Unknown Store')}</div>
+                        <div class="product-description">${escapeHtml((product.description || '').substring(0, 100))}${(product.description || '').length > 100 ? '...' : ''}</div>
                         <div class="product-meta">
                             <div class="product-price">$${parseFloat(product.price).toFixed(2)}</div>
                             <div class="product-rating">
@@ -983,16 +1006,8 @@
             `).join('');
         }
 
-        function searchProducts() {
-            const query = document.getElementById('search-input').value;
-            // Implement server-side search
-            loadProducts();
-        }
-
-        function filterProducts() {
-            // Implement category filtering
-            loadProducts();
-        }
+        function searchProducts() { loadProducts(); }
+        function filterProducts() { loadProducts(); }
 
         // ====== AUTHENTICATION ====== 
         async function handleRegister(event) {
@@ -1021,6 +1036,7 @@
                 authToken = result.token;
                 currentUser = result.user;
                 localStorage.setItem('auth_token', authToken);
+                localStorage.setItem('auth_user', JSON.stringify(currentUser));
                 updateAuthUI();
 
                 showAlert('Account created successfully!', 'success');
@@ -1054,6 +1070,7 @@
                 authToken = result.token;
                 currentUser = result.user;
                 localStorage.setItem('auth_token', authToken);
+                localStorage.setItem('auth_user', JSON.stringify(currentUser));
                 updateAuthUI();
 
                 showAlert('Login successful!', 'success');
@@ -1067,115 +1084,151 @@
             authToken = null;
             currentUser = null;
             localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
             updateAuthUI();
             showAlert('Logged out', 'success');
             showPage('home');
         }
 
-        // ====== SELLER FUNCTIONS ====== 
+        // ====== SELLER FUNCTIONS ======
+        async function getSellerStore() {
+            const response = await fetch(`${API_BASE}/seller/store`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to load store');
+            return result.store;
+        }
+
         async function loadSellerDashboard() {
-            if (!currentUser) return;
-            // Load seller stats and products
-            loadProducts();
+            if (!currentUser || currentUser.userType !== 'seller') return;
+            try {
+                const store = await getSellerStore();
+                if (!store) {
+                    showAlert('Seller store is not configured.', 'error');
+                    return;
+                }
+                const response = await fetch(`${API_BASE}/seller/products/${store.id}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load products');
+                const products = data.products || [];
+                document.getElementById('seller-product-count').textContent = products.length;
+                document.getElementById('seller-products-table').innerHTML = products.length ? products.map(p => `
+                    <tr><td>${escapeHtml(p.title)}</td><td>$${Number(p.price).toFixed(2)}</td><td>${p.is_active ? 'Active' : 'Inactive'}</td><td>-</td></tr>
+                `).join('') : '<tr><td colspan="4" style="text-align:center;">No products yet</td></tr>';
+                const ordersResponse = await fetch(`${API_BASE}/orders/seller`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const ordersData = await ordersResponse.json();
+                if (ordersResponse.ok) document.getElementById('seller-order-count').textContent = (ordersData.orders || []).length;
+                document.getElementById('seller-rating').textContent = `${Number(store.store_rating || 0).toFixed(1)}/5`;
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
         }
 
         async function handleAddProduct(event) {
             event.preventDefault();
-
-            const formData = new FormData();
-            formData.append('storeId', 1); // In production, get actual store ID
-            formData.append('title', document.getElementById('product-title').value);
-            formData.append('description', document.getElementById('product-description').value);
-            formData.append('price', document.getElementById('product-price').value);
-            formData.append('category', document.getElementById('product-category').value);
-            formData.append('deliveryType', document.getElementById('product-delivery').value);
-
-            if (document.getElementById('product-image').files.length > 0) {
-                formData.append('image', document.getElementById('product-image').files[0]);
-            }
-
             try {
+                const store = await getSellerStore();
+                if (!store) throw new Error('Seller store not found');
+                const formData = new FormData();
+                formData.append('storeId', store.id);
+                formData.append('title', document.getElementById('product-title').value.trim());
+                formData.append('description', document.getElementById('product-description').value.trim());
+                formData.append('price', document.getElementById('product-price').value);
+                formData.append('category', document.getElementById('product-category').value);
+                formData.append('deliveryType', document.getElementById('product-delivery').value);
+                const image = document.getElementById('product-image').files[0];
+                if (image) formData.append('image', image);
+
                 const response = await fetch(`${API_BASE}/seller/products`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${authToken}` },
-                    body: formData
+                    method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: formData
                 });
-
                 const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Failed to add product');
-                }
-
+                if (!response.ok) throw new Error(result.error || 'Failed to add product');
                 showAlert('Product added successfully!', 'success');
                 event.target.reset();
                 showPage('seller-dashboard');
-            } catch (error) {
-                showAlert(error.message, 'error');
-            }
+            } catch (error) { showAlert(error.message, 'error'); }
         }
 
-        // ====== BUYER FUNCTIONS ====== 
+        // ====== BUYER / SELLER ORDERS ======
         async function loadBuyerOrders() {
-            if (!authToken) return;
-            // Load buyer's orders
             const table = document.getElementById('buyer-orders-table');
-            table.innerHTML = '<tr><td colspan="5">No orders yet</td></tr>';
+            if (!authToken || !currentUser || currentUser.userType !== 'buyer') return;
+            try {
+                const response = await fetch(`${API_BASE}/orders/buyer`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load orders');
+                table.innerHTML = (data.orders || []).length ? data.orders.map(o => `
+                    <tr><td>#${o.id}</td><td>${escapeHtml(o.product_title)}</td><td>$${Number(o.amount).toFixed(2)}</td><td>${escapeHtml(o.status)}</td><td>${o.status === 'pending' ? `<button class="btn-small btn-primary" onclick="confirmPayment(${o.id})">CONFIRM PAYMENT</button>` : o.status === 'payment_confirmed' ? `<button class="btn-small btn-primary" onclick="confirmDelivery(${o.id})">CONFIRM DELIVERY</button>` : o.status === 'completed' ? 'Completed' : '-'}</td></tr>
+                `).join('') : '<tr><td colspan="5" style="text-align:center;">No orders yet</td></tr>';
+            } catch (error) { table.innerHTML = `<tr><td colspan="5" style="text-align:center;">${escapeHtml(error.message)}</td></tr>`; }
         }
 
         async function loadSellerOrders() {
-            if (!authToken) return;
-            // Load seller's incoming orders
             const table = document.getElementById('seller-orders-table');
-            table.innerHTML = '<tr><td colspan="4">No orders yet</td></tr>';
+            if (!authToken || !currentUser || currentUser.userType !== 'seller') return;
+            try {
+                const response = await fetch(`${API_BASE}/orders/seller`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load orders');
+                table.innerHTML = (data.orders || []).length ? data.orders.map(o => `
+                    <tr><td>#${o.id}</td><td>${escapeHtml(o.product_title)}</td><td>${escapeHtml(o.buyer_username)}</td><td>${escapeHtml(o.status)}</td></tr>
+                `).join('') : '<tr><td colspan="4" style="text-align:center;">No orders yet</td></tr>';
+            } catch (error) { table.innerHTML = `<tr><td colspan="4" style="text-align:center;">${escapeHtml(error.message)}</td></tr>`; }
         }
 
-        // ====== PRODUCT DETAIL ====== 
-        function showProductDetail(productId) {
+        async function confirmPayment(orderId) {
+            await orderAction(orderId, 'confirm-payment', 'Payment confirmed.');
+            loadBuyerOrders();
+        }
+        async function confirmDelivery(orderId) {
+            await orderAction(orderId, 'confirm-delivery', 'Delivery confirmed.');
+            loadBuyerOrders();
+        }
+        async function orderAction(orderId, action, message) {
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/${action}`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Order action failed');
+                showAlert(message, 'success');
+            } catch (error) { showAlert(error.message, 'error'); }
+        }
+
+        // ====== PRODUCT DETAIL ======
+        async function showProductDetail(productId) {
             const modal = document.getElementById('product-modal');
             const detail = document.getElementById('product-detail');
-            
-            detail.innerHTML = `
-                <h2>Product Details</h2>
-                <p>Product ID: ${productId}</p>
-                <button class="btn-primary" onclick="handlePurchase(${productId})">PURCHASE NOW</button>
-            `;
-            
+            detail.innerHTML = '<p>Loading product...</p>';
             modal.classList.add('active');
+            try {
+                const response = await fetch(`${API_BASE}/products/${productId}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Product not found');
+                const product = data.product;
+                detail.innerHTML = `
+                    <h2>${escapeHtml(product.title)}</h2>
+                    <p style="color:var(--text-muted);margin:1rem 0;">${escapeHtml(product.description || '')}</p>
+                    <p class="product-price">$${Number(product.price).toFixed(2)}</p>
+                    <button class="btn-primary" onclick="handlePurchase(${product.id})">PURCHASE NOW</button>`;
+            } catch (error) { detail.innerHTML = `<p>${escapeHtml(error.message)}</p>`; }
         }
 
-        function closeModal() {
-            document.getElementById('product-modal').classList.remove('active');
-        }
+        function closeModal() { document.getElementById('product-modal').classList.remove('active'); }
 
         async function handlePurchase(productId) {
-            if (!authToken) {
-                showAlert('Please login to purchase', 'error');
-                showPage('login');
-                return;
-            }
-
+            if (!authToken) { showAlert('Please login to purchase', 'error'); showPage('login'); return; }
+            if (!currentUser || currentUser.userType !== 'buyer') { showAlert('Buyer account required', 'error'); return; }
             try {
-                const response = await fetch(`${API_BASE}/orders`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ productId })
-                });
-
+                const response = await fetch(`${API_BASE}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify({ productId }) });
                 const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Purchase failed');
-                }
-
-                showAlert('Order created! Please confirm payment.', 'success');
+                if (!response.ok) throw new Error(result.error || 'Purchase failed');
+                showAlert('Order created. Confirm payment from Orders.', 'success');
                 closeModal();
-            } catch (error) {
-                showAlert(error.message, 'error');
-            }
+                showPage('buyer-dashboard');
+            } catch (error) { showAlert(error.message, 'error'); }
         }
 
         // ====== INITIALIZATION ====== 
