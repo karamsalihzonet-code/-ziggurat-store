@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIGGURAT - Digital Products Marketplace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-dark: #0f1419;
+            --secondary-dark: #1a1f2e;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --text-light: #e5e7eb;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --error: #ef4444;
+            --border-color: #374151;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        /* ====== HEADER & NAVIGATION ====== */
+
+        header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--secondary-dark) 100%);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-purple);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-dark);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-secondary:hover {
+            background: #2a3142;
+            border-color: var(--accent-purple);
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        /* ====== MAIN CONTENT ====== */
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ====== HOME PAGE ====== */
+
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 500px;
+            margin: 0 auto 3rem;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 1rem;
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ====== PRODUCTS GRID ====== */
+
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-group select {
+            padding: 0.7rem;
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-light);
+            cursor: pointer;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .product-card {
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: var(--transition);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-purple);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #1f2937, #111827);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .product-store {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.8rem;
+        }
+
+        .product-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .product-rating {
+            display: flex;
+            gap: 0.2rem;
+            font-size: 0.9rem;
+        }
+
+        .product-rating .star {
+            color: #fbbf24;
+        }
+
+        /* ====== FORMS ====== */
+
+        .form-container {
+            max-width: 500px;
+            margin: 2rem auto;
+            background: var(--secondary-dark);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-container h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 1rem;
+            background: var(--primary-dark);
+            border: 2px dashed var(--accent-purple);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-input-label:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-submit {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .form-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        /* ====== DASHBOARD ====== */
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-card {
+            background: var(--secondary-dark);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .dashboard-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--accent-purple);
+        }
+
+        /* ====== TABLES ====== */
+
+        .table-container {
+            background: var(--secondary-dark);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table thead {
+            background: var(--primary-dark);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table tbody tr:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: #fcd34d;
+        }
+
+        .status-confirmed {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+        }
+
+        .status-completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #86efac;
+        }
+
+        .status-disputed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        /* ====== MODALS ====== */
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--secondary-dark);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid var(--border-color);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: var(--accent-purple);
+        }
+
+        /* ====== ALERTS ====== */
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #86efac;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* ====== RESPONSIVE ====== */
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        /* ====== LOADING ====== */
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ====== HEADER ====== -->
+    <header>
+        <nav>
+            <div class="logo">⬚ ZIGGURAT</div>
+            <ul class="nav-links">
+                <li><a onclick="showPage('home')">MARKETPLACE</a></li>
+                <li><a onclick="showPage('seller-dashboard')">SELLER</a></li>
+                <li><a onclick="showPage('buyer-dashboard')">ORDERS</a></li>
+                <li><a id="auth-toggle" onclick="showPage('login')">LOGIN</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- ====== MAIN CONTAINER ====== -->
+    <div class="container">
+        <!-- Alert Messages -->
+        <div id="alert" class="alert"></div>
+
+        <!-- ====== HOME PAGE ====== -->
+        <div id="home" class="page active">
+            <div class="hero">
+                <h1>ZIGGURAT</h1>
+                <p>Secure Marketplace for Digital Products & Services</p>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search products...">
+                <button class="btn-primary" onclick="searchProducts()">SEARCH</button>
+            </div>
+
+            <div class="products-header">
+                <div class="filter-group">
+                    <select id="category-filter" onchange="filterProducts()">
+                        <option value="">All Categories</option>
+                        <option value="software">Software</option>
+                        <option value="ebooks">E-Books</option>
+                        <option value="courses">Courses</option>
+                        <option value="art">Digital Art</option>
+                        <option value="music">Music</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="products-grid" class="products-grid">
+                <!-- Products will be loaded here -->
+            </div>
+        </div>
+
+        <!-- ====== LOGIN PAGE ====== -->
+        <div id="login" class="page">
+            <div class="form-container">
+                <h2>LOGIN</h2>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="form-submit">LOGIN</button>
+                </form>
+                <p style="text-align: center; margin-top: 1rem; color: var(--text-muted);">
+                    New user? <a onclick="showPage('register')" style="color: var(--accent-purple); cursor: pointer;">Create account</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- ====== REGISTER PAGE ====== -->
+        <div id="register" class="page">
+            <div class="form-container">
+                <h2>CREATE ACCOUNT</h2>
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="register-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>User Type</label>
+                        <select id="register-type" required>
+                            <option value="">Select...</option>
+                            <option value="buyer">Buyer</option>
+                            <option value="seller">Seller</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="form-submit">CREATE ACCOUNT</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ====== SELLER DASHBOARD ====== -->
+        <div id="seller-dashboard" class="page">
+            <h2>SELLER DASHBOARD</h2>
+            
+            <div class="dashboard">
+                <div class="dashboard-card">
+                    <h3>Store Stats</h3>
+                    <div class="stat">
+                        <span class="stat-label">Total Products</span>
+                        <span class="stat-value" id="seller-product-count">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Total Orders</span>
+                        <span class="stat-value" id="seller-order-count">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Store Rating</span>
+                        <span class="stat-value" id="seller-rating">0/5</span>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Quick Actions</h3>
+                    <button class="btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="showPage('add-product')">+ ADD PRODUCT</button>
+                    <button class="btn-secondary" style="width: 100%;" onclick="showPage('seller-orders')">VIEW ORDERS</button>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 2rem;">Your Products</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="seller-products-table">
+                        <tr><td colspan="4" style="text-align: center;">Load products...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ====== ADD PRODUCT PAGE ====== -->
+        <div id="add-product" class="page">
+            <div class="form-container">
+                <h2>ADD NEW PRODUCT</h2>
+                <form onsubmit="handleAddProduct(event)">
+                    <div class="form-group">
+                        <label>Product Title *</label>
+                        <input type="text" id="product-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description *</label>
+                        <textarea id="product-description" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (USD) *</label>
+                        <input type="number" id="product-price" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="product-category">
+                            <option value="">Select...</option>
+                            <option value="software">Software</option>
+                            <option value="ebooks">E-Books</option>
+                            <option value="courses">Courses</option>
+                            <option value="art">Digital Art</option>
+                            <option value="music">Music</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Delivery Type *</label>
+                        <select id="product-delivery" required>
+                            <option value="">Select...</option>
+                            <option value="instant_download">Instant Download</option>
+                            <option value="manual_delivery">Manual Delivery</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Product Image (Auto-sanitized)</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="product-image" accept="image/*">
+                            <label class="file-input-label">Click to upload image (JPEG, PNG, WebP)</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="form-submit">CREATE PRODUCT</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ====== BUYER DASHBOARD ====== -->
+        <div id="buyer-dashboard" class="page">
+            <h2>MY ORDERS</h2>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Product</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="buyer-orders-table">
+                        <tr><td colspan="5" style="text-align: center;">Loading orders...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ====== SELLER ORDERS PAGE ====== -->
+        <div id="seller-orders" class="page">
+            <h2>INCOMING ORDERS</h2>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Buyer</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="seller-orders-table">
+                        <tr><td colspan="4" style="text-align: center;">Loading orders...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ====== PRODUCT DETAIL MODAL ====== -->
+        <div id="product-modal" class="modal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal()">✕</button>
+                <div id="product-detail">
+                    <!-- Product details will load here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====== API CONFIG ====== 
+        const API_BASE = `${window.location.protocol}//${window.location.hostname || 'localhost'}:5000/api`;
+        const API_ORIGIN = API_BASE.replace(/\/api$/, '');
+        let currentUser = JSON.parse(localStorage.getItem('auth_user') || 'null');
+        let authToken = localStorage.getItem('auth_token');
+
+        // Update auth toggle based on login state
+        function updateAuthUI() {
+            const authToggle = document.getElementById('auth-toggle');
+            if (authToken && currentUser) {
+                authToggle.textContent = `LOGOUT (${currentUser.username})`;
+                authToggle.onclick = () => handleLogout();
+            } else {
+                authToggle.textContent = 'LOGIN';
+                authToggle.onclick = () => showPage('login');
+            }
+        }
+
+        // ====== NAVIGATION ====== 
+        function showPage(pageName) {
+            // Check auth for protected pages
+            const protectedPages = ['seller-dashboard', 'add-product', 'buyer-dashboard', 'seller-orders'];
+            if (protectedPages.includes(pageName) && !authToken) {
+                showAlert('Please login first', 'error');
+                showPage('login');
+                return;
+            }
+            if (pageName.startsWith('seller') || pageName === 'add-product') {
+                if (!currentUser || currentUser.userType !== 'seller') {
+                    showAlert('Seller account required', 'error');
+                    return;
+                }
+            }
+            if (pageName === 'buyer-dashboard' && (!currentUser || currentUser.userType !== 'buyer')) {
+                showAlert('Buyer account required', 'error');
+                return;
+            }
+
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Show selected page
+            document.getElementById(pageName).classList.add('active');
+
+            // Load page-specific data
+            if (pageName === 'home') {
+                loadProducts();
+            } else if (pageName === 'seller-dashboard') {
+                loadSellerDashboard();
+            } else if (pageName === 'buyer-dashboard') {
+                loadBuyerOrders();
+            } else if (pageName === 'seller-orders') {
+                loadSellerOrders();
+            }
+        }
+
+        // ====== ALERTS ====== 
+        function showAlert(message, type = 'success', duration = 3000) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert show alert-${type}`;
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, duration);
+        }
+
+        // ====== PRODUCTS ====== 
+        async function loadProducts() {
+            const grid = document.getElementById('products-grid');
+            try {
+                const params = new URLSearchParams();
+                const query = document.getElementById('search-input')?.value.trim();
+                const category = document.getElementById('category-filter')?.value;
+                if (query) params.set('search', query);
+                if (category) params.set('category', category);
+                const response = await fetch(`${API_BASE}/products?${params.toString()}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load products');
+                renderProducts(data.products || []);
+            } catch (error) {
+                console.error('Error loading products:', error);
+                grid.innerHTML = '<p style="text-align:center;padding:3rem;">Unable to load products. Make sure the backend is running.</p>';
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;',"\"":'&quot;'}[ch]));
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('products-grid');
+            
+            if (products.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; padding: 3rem;">No products found</p>';
+                return;
+            }
+
+            grid.innerHTML = products.map(product => `
+                <div class="product-card" onclick="showProductDetail(${product.id})">
+                    <div class="product-image">
+                        ${product.image_url ? `<img src="${product.image_url.startsWith('http') ? product.image_url : API_ORIGIN + product.image_url}" alt="${escapeHtml(product.title)}">` : '🎁'}
+                    </div>
+                    <div class="product-info">
+                        <div class="product-title">${escapeHtml(product.title)}</div>
+                        <div class="product-store">by ${escapeHtml(product.store_name || 'Unknown Store')}</div>
+                        <div class="product-description">${escapeHtml((product.description || '').substring(0, 100))}${(product.description || '').length > 100 ? '...' : ''}</div>
+                        <div class="product-meta">
+                            <div class="product-price">$${parseFloat(product.price).toFixed(2)}</div>
+                            <div class="product-rating">
+                                ${'★'.repeat(Math.round(product.store_rating))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function searchProducts() { loadProducts(); }
+        function filterProducts() { loadProducts(); }
+
+        // ====== AUTHENTICATION ====== 
+        async function handleRegister(event) {
+            event.preventDefault();
+
+            const data = {
+                username: document.getElementById('register-username').value,
+                email: document.getElementById('register-email').value,
+                password: document.getElementById('register-password').value,
+                userType: document.getElementById('register-type').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Registration failed');
+                }
+
+                authToken = result.token;
+                currentUser = result.user;
+                localStorage.setItem('auth_token', authToken);
+                localStorage.setItem('auth_user', JSON.stringify(currentUser));
+                updateAuthUI();
+
+                showAlert('Account created successfully!', 'success');
+                showPage('home');
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const data = {
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-password').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Login failed');
+                }
+
+                authToken = result.token;
+                currentUser = result.user;
+                localStorage.setItem('auth_token', authToken);
+                localStorage.setItem('auth_user', JSON.stringify(currentUser));
+                updateAuthUI();
+
+                showAlert('Login successful!', 'success');
+                showPage('home');
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        function handleLogout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            updateAuthUI();
+            showAlert('Logged out', 'success');
+            showPage('home');
+        }
+
+        // ====== SELLER FUNCTIONS ======
+        async function getSellerStore() {
+            const response = await fetch(`${API_BASE}/seller/store`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to load store');
+            return result.store;
+        }
+
+        async function loadSellerDashboard() {
+            if (!currentUser || currentUser.userType !== 'seller') return;
+            try {
+                const store = await getSellerStore();
+                if (!store) {
+                    showAlert('Seller store is not configured.', 'error');
+                    return;
+                }
+                const response = await fetch(`${API_BASE}/seller/products/${store.id}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load products');
+                const products = data.products || [];
+                document.getElementById('seller-product-count').textContent = products.length;
+                document.getElementById('seller-products-table').innerHTML = products.length ? products.map(p => `
+                    <tr><td>${escapeHtml(p.title)}</td><td>$${Number(p.price).toFixed(2)}</td><td>${p.is_active ? 'Active' : 'Inactive'}</td><td>-</td></tr>
+                `).join('') : '<tr><td colspan="4" style="text-align:center;">No products yet</td></tr>';
+                const ordersResponse = await fetch(`${API_BASE}/orders/seller`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const ordersData = await ordersResponse.json();
+                if (ordersResponse.ok) document.getElementById('seller-order-count').textContent = (ordersData.orders || []).length;
+                document.getElementById('seller-rating').textContent = `${Number(store.store_rating || 0).toFixed(1)}/5`;
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        async function handleAddProduct(event) {
+            event.preventDefault();
+            try {
+                const store = await getSellerStore();
+                if (!store) throw new Error('Seller store not found');
+                const formData = new FormData();
+                formData.append('storeId', store.id);
+                formData.append('title', document.getElementById('product-title').value.trim());
+                formData.append('description', document.getElementById('product-description').value.trim());
+                formData.append('price', document.getElementById('product-price').value);
+                formData.append('category', document.getElementById('product-category').value);
+                formData.append('deliveryType', document.getElementById('product-delivery').value);
+                const image = document.getElementById('product-image').files[0];
+                if (image) formData.append('image', image);
+
+                const response = await fetch(`${API_BASE}/seller/products`, {
+                    method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: formData
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to add product');
+                showAlert('Product added successfully!', 'success');
+                event.target.reset();
+                showPage('seller-dashboard');
+            } catch (error) { showAlert(error.message, 'error'); }
+        }
+
+        // ====== BUYER / SELLER ORDERS ======
+        async function loadBuyerOrders() {
+            const table = document.getElementById('buyer-orders-table');
+            if (!authToken || !currentUser || currentUser.userType !== 'buyer') return;
+            try {
+                const response = await fetch(`${API_BASE}/orders/buyer`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load orders');
+                table.innerHTML = (data.orders || []).length ? data.orders.map(o => `
+                    <tr><td>#${o.id}</td><td>${escapeHtml(o.product_title)}</td><td>$${Number(o.amount).toFixed(2)}</td><td>${escapeHtml(o.status)}</td><td>${o.status === 'pending' ? `<button class="btn-small btn-primary" onclick="confirmPayment(${o.id})">CONFIRM PAYMENT</button>` : o.status === 'payment_confirmed' ? `<button class="btn-small btn-primary" onclick="confirmDelivery(${o.id})">CONFIRM DELIVERY</button>` : o.status === 'completed' ? 'Completed' : '-'}</td></tr>
+                `).join('') : '<tr><td colspan="5" style="text-align:center;">No orders yet</td></tr>';
+            } catch (error) { table.innerHTML = `<tr><td colspan="5" style="text-align:center;">${escapeHtml(error.message)}</td></tr>`; }
+        }
+
+        async function loadSellerOrders() {
+            const table = document.getElementById('seller-orders-table');
+            if (!authToken || !currentUser || currentUser.userType !== 'seller') return;
+            try {
+                const response = await fetch(`${API_BASE}/orders/seller`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load orders');
+                table.innerHTML = (data.orders || []).length ? data.orders.map(o => `
+                    <tr><td>#${o.id}</td><td>${escapeHtml(o.product_title)}</td><td>${escapeHtml(o.buyer_username)}</td><td>${escapeHtml(o.status)}</td></tr>
+                `).join('') : '<tr><td colspan="4" style="text-align:center;">No orders yet</td></tr>';
+            } catch (error) { table.innerHTML = `<tr><td colspan="4" style="text-align:center;">${escapeHtml(error.message)}</td></tr>`; }
+        }
+
+        async function confirmPayment(orderId) {
+            await orderAction(orderId, 'confirm-payment', 'Payment confirmed.');
+            loadBuyerOrders();
+        }
+        async function confirmDelivery(orderId) {
+            await orderAction(orderId, 'confirm-delivery', 'Delivery confirmed.');
+            loadBuyerOrders();
+        }
+        async function orderAction(orderId, action, message) {
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/${action}`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Order action failed');
+                showAlert(message, 'success');
+            } catch (error) { showAlert(error.message, 'error'); }
+        }
+
+        // ====== PRODUCT DETAIL ======
+        async function showProductDetail(productId) {
+            const modal = document.getElementById('product-modal');
+            const detail = document.getElementById('product-detail');
+            detail.innerHTML = '<p>Loading product...</p>';
+            modal.classList.add('active');
+            try {
+                const response = await fetch(`${API_BASE}/products/${productId}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Product not found');
+                const product = data.product;
+                detail.innerHTML = `
+                    <h2>${escapeHtml(product.title)}</h2>
+                    <p style="color:var(--text-muted);margin:1rem 0;">${escapeHtml(product.description || '')}</p>
+                    <p class="product-price">$${Number(product.price).toFixed(2)}</p>
+                    <button class="btn-primary" onclick="handlePurchase(${product.id})">PURCHASE NOW</button>`;
+            } catch (error) { detail.innerHTML = `<p>${escapeHtml(error.message)}</p>`; }
+        }
+
+        function closeModal() { document.getElementById('product-modal').classList.remove('active'); }
+
+        async function handlePurchase(productId) {
+            if (!authToken) { showAlert('Please login to purchase', 'error'); showPage('login'); return; }
+            if (!currentUser || currentUser.userType !== 'buyer') { showAlert('Buyer account required', 'error'); return; }
+            try {
+                const response = await fetch(`${API_BASE}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify({ productId }) });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Purchase failed');
+                showAlert('Order created. Confirm payment from Orders.', 'success');
+                closeModal();
+                showPage('buyer-dashboard');
+            } catch (error) { showAlert(error.message, 'error'); }
+        }
+
+        // ====== INITIALIZATION ====== 
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthUI();
+            loadProducts();
+        });
+    </script>
+</body>
+</html>
